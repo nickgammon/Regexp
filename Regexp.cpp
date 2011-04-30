@@ -1,6 +1,6 @@
 /*
 
-Regular-expression matching library for Ardiuno.
+Regular-expression matching library for Arduino.
 
 Written by Nick Gammon.
 Date: 30 April 2011
