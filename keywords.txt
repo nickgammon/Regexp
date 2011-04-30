@@ -1,0 +1,2 @@
+Regexp	KEYWORD1
+regexp	KEYWORD2
