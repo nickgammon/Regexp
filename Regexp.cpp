@@ -11,7 +11,8 @@ Adapted to run on the Arduino by Nick Gammon.
 
 VERSION
  
- Version 1.0  - 30th April 2011
+ Version 1.0  - 30th April 2011 : initial release.
+ Version 1.1  - 1st May 2011    : added some helper functions, made more modular.
  
  
 LICENSE
@@ -51,56 +52,69 @@ USAGE
  On a parsing error (eg. trailing % symbol) returns a negative number.
  
  
-EXAMPLE OF CALLING
+EXAMPLE OF CALLING ON THE ARDUINO
  
-// -------------------------------------
+// ------------------------------------- //
 
 #include <Regexp.h>
-MatchState ms;
 
 void setup ()
 {
   
   Serial.begin (115200);
+  Serial.println ();
   
-  ms.src = "Testing: answer=42";
-  ms.src_len = strlen (ms.src);
-  char result = regexp (ms, "(%a+)=(%d+)", 0);
-  if (result == REGEXP_MATCHED)
+  MatchState ms;
+  char buf [100];  // large enough to hold expected string, or malloc it
+  
+  // string we are searching
+  ms.Target ("Testing: answer=42");
+  
+  // search it
+  char result = ms.Match ("(%a+)=(%d+)", 0);
+  
+  // check results
+  
+  switch (result)
   {
-    // matching offsets in ms.capture
-    
-    Serial.print ("Captures: ");
-    Serial.println (ms.level);
-    
-    for (int j = 0; j < ms.level; j++)
-    {
-      Serial.print ("Capture number: ");
-      Serial.println (j + 1, DEC);
-      Serial.print ("Text: '");
-      const char * p = ms.capture [j].init;
-      for (int k = 0; k < ms.capture [j].len; k++)
-        Serial.print (*p++);
+    case REGEXP_MATCHED:
       
-      Serial.println ("'");
+      Serial.println ("-----");
+      Serial.print ("Matched on: ");
+      Serial.println (ms.GetMatch (buf));
       
-    }
-    
-  }
-  else if (result == REGEXP_NOMATCH)
-  {
-    // no match
-  }
-  else
-  {
-    // some sort of error
-  }
+      // matching offsets in ms.capture
+      
+      Serial.print ("Captures: ");
+      Serial.println (ms.level);
+      
+      for (int j = 0; j < ms.level; j++)
+      {
+        Serial.print ("Capture number: ");
+        Serial.println (j + 1, DEC);
+        Serial.print ("Text: '");
+        Serial.print (ms.GetCapture (buf, j));
+        Serial.println ("'");
+        
+      }
+      break;  
+      
+    case REGEXP_NOMATCH:
+      Serial.println ("No match.");
+      break;
+      
+    default:
+      Serial.print ("Regexp error: ");
+      Serial.println (result, DEC);
+      break;
+      
+  }  // end of switch
+  
 }  // end of setup
 
-void loop () {
-}  // end of loop
+void loop () {}  // end of loop
 
- // -------------------------------------
+// -------------------------------------  //
 
  
 PATTERNS
@@ -528,31 +542,82 @@ static const char *lmemfind (const char *s1, size_t l1,
   }
 }   // end of lmemfind
 
-char regexp (MatchState & ms, const char * pattern, unsigned int index)
+
+// functions below written by Nick Gammon ...
+
+char MatchState::Match (const char * pattern, unsigned int index)
 {
   // set up for throwing errors
   char rtn = setjmp (regexp_error_return);
   
   // error return
   if (rtn)
-    return (rtn);
+    return ((result = rtn));
+
+  if (!src)
+    error (ERR_NO_TARGET_STRING);
   
-  if (index > ms.src_len) 
-    index = ms.src_len;
+  if (index > src_len) 
+    index = src_len;
 
   int anchor = (*pattern == '^') ? (pattern++, 1) : 0;
-  const char *s1=ms.src + index;
-  ms.src_end = ms.src+ms.src_len;
+  const char *s1 =src + index;
+  src_end = src + src_len;
+  
+  // iterate through target string, character by character unless anchored
   do {
     const char *res;
-    ms.level = 0;
-    if ((res=match(&ms, s1, pattern)) != NULL) {
-      ms.match_start = s1 - ms.src;
-      ms.match_len = res - s1;
-      return REGEXP_MATCHED;
-    }
-  } while (s1++ < ms.src_end && !anchor);
+    level = 0;
+    if ((res=match(this, s1, pattern)) != NULL) 
+    {
+      MatchStart = s1 - src;
+      MatchLength = res - s1;
+      return (result = REGEXP_MATCHED);
+    }  // end of match at this position
+  } while (s1++ < src_end && !anchor);
   
-  return REGEXP_NOMATCH; // no match
+  return (result = REGEXP_NOMATCH); // no match
   
 } // end of regexp
+
+// set up the target string
+void MatchState::Target (const char * s) 
+  {
+  Target (s, strlen (s));
+  }  // end of MatchState::Target
+
+void MatchState::Target (const char * s, const unsigned int len) 
+  { 
+  src = s; 
+  src_len = len; 
+  result = REGEXP_NOMATCH;
+  }  // end of MatchState::Target
+
+// copy the match string to user-supplied buffer
+// buffer must be large enough to hold it
+char * MatchState::GetMatch (char * s)
+{
+  if (result != REGEXP_MATCHED)
+    s [0] = 0;  
+  else 
+    {
+    memcpy (s, &src [MatchStart], MatchLength);
+    s [MatchLength] = 0;  // null-terminated string
+    }
+  return s;
+} // end of  MatchState::GetMatch
+
+// get one of the capture strings (zero-relative level)
+// buffer must be large enough to hold it
+char * MatchState::GetCapture (char * s, const int n)
+{
+  if (result != REGEXP_MATCHED || n >= level || capture [n].len <= 0)
+    s [0] = 0;  
+  else 
+    {
+    memcpy (s, capture [n].init, capture [n].len);
+    s [capture [n].len] = 0;  // null-terminated string
+    }
+  return s;
+} // end of MatchState::GetCapture
+

@@ -1,2 +1,5 @@
-Regexp	KEYWORD1
-regexp	KEYWORD2
+MatchState	KEYWORD1
+Match	KEYWORD2
+Target	KEYWORD2
+GetMatch	KEYWORD2
+GetCapture	KEYWORD2
