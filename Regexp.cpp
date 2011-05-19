@@ -13,6 +13,7 @@ VERSION
  
  Version 1.0  - 30th April 2011 : initial release.
  Version 1.1  - 1st May 2011    : added some helper functions, made more modular.
+ Version 1.2  - 19th May 2011   : added more helper functions for replacing etc.
  
  
 LICENSE
@@ -581,12 +582,12 @@ char MatchState::Match (const char * pattern, unsigned int index)
 } // end of regexp
 
 // set up the target string
-void MatchState::Target (const char * s) 
+void MatchState::Target (char * s) 
   {
   Target (s, strlen (s));
   }  // end of MatchState::Target
 
-void MatchState::Target (const char * s, const unsigned int len) 
+void MatchState::Target (char * s, const unsigned int len) 
   { 
   src = s; 
   src_len = len; 
@@ -595,7 +596,7 @@ void MatchState::Target (const char * s, const unsigned int len)
 
 // copy the match string to user-supplied buffer
 // buffer must be large enough to hold it
-char * MatchState::GetMatch (char * s)
+char * MatchState::GetMatch (char * s) const
 {
   if (result != REGEXP_MATCHED)
     s [0] = 0;  
@@ -609,7 +610,7 @@ char * MatchState::GetMatch (char * s)
 
 // get one of the capture strings (zero-relative level)
 // buffer must be large enough to hold it
-char * MatchState::GetCapture (char * s, const int n)
+char * MatchState::GetCapture (char * s, const int n) const
 {
   if (result != REGEXP_MATCHED || n >= level || capture [n].len <= 0)
     s [0] = 0;  
@@ -620,4 +621,135 @@ char * MatchState::GetCapture (char * s, const int n)
     }
   return s;
 } // end of MatchState::GetCapture
+
+// match repeatedly on a string, return count of matches
+unsigned int MatchState::MatchCount (const char * pattern)
+{
+  unsigned int count = 0;
+  
+  // keep matching until we run out of matches
+  for (unsigned int index = 0;
+       Match (pattern, index) > 0 &&
+       index < src_len;                       // otherwise empty matches loop
+       count++)    
+    // increment index ready for next time, go forwards at least one byte
+    index = MatchStart + (MatchLength == 0 ? 1 : MatchLength);
+  
+  return count;
+  
+} // end of MatchState::MatchCount
+
+// match repeatedly on a string, call function f for each match
+unsigned int MatchState::GlobalMatch (const char * pattern, GlobalMatchCallback f)
+{
+  unsigned int count = 0;
+
+  // keep matching until we run out of matches
+  for (unsigned int index = 0;
+       Match (pattern, index) > 0;
+       count++)
+    {
+    f (& src [MatchStart], MatchLength, *this);
+    // increment index ready for next time, go forwards at least one byte
+    index = MatchStart + (MatchLength == 0 ? 1 : MatchLength);
+    } // end of for each match
+  return count;
+  
+} // end of MatchState::GlobalMatch 
+
+// match repeatedly on a string, call function f for each match
+//  f sets replacement string, incorporate replacement and continue
+// maximum of max_count replacements if max_count > 0
+// replacement string in GlobalReplaceCallback must stay in scope (eg. static string or literal)
+unsigned int MatchState::GlobalReplace (const char * pattern, GlobalReplaceCallback f, const unsigned int max_count)
+{
+  unsigned int count = 0;
+  
+  // keep matching until we run out of matches
+  for (unsigned int index = 0;
+       Match (pattern, index) > 0 &&            // stop when no match
+       index < src_len &&                       // otherwise empty matches loop
+       (max_count == 0 || count < max_count);   // stop when count reached
+       count++)
+    {
+    // default is to replace with self
+    char * replacement = &src [MatchStart];
+    unsigned int replacement_length = MatchLength;
+    
+    // increment index ready for next time, go forwards at least one byte
+    if (MatchLength == 0)
+      index = MatchStart + 1; // go forwards at least one byte or we will loop forever
+    else 
+      {
+      // increment index ready for next time, 
+      index = MatchStart + MatchLength;
+
+      // call function to find replacement text
+      f (&src [MatchStart], MatchLength, replacement, replacement_length, *this);
+      
+      // see how much memory we need to move
+      int lengthDiff = MatchLength - replacement_length;
+      
+      // copy the rest of the buffer backwards/forwards to allow for the length difference
+      memmove (&src [index - lengthDiff], &src [index], src_len - index);
+      
+      // copy in the replacement
+      memmove (&src [MatchStart], replacement, replacement_length);
+      
+      // adjust the index for the next search
+      index -= lengthDiff;  
+      // and the length of the source
+      src_len -= lengthDiff;
+      } // end if matching at least one byte
+    } // end of for each match
+  
+  // put a terminating null in
+  src [src_len] = 0;
+  return count;
+} // end of MatchState::GlobalReplace 
+
+
+// match repeatedly on a string, replaces with replacement string for each match
+// maximum of max_count replacements if max_count > 0
+// replacement string in GlobalReplaceCallback must stay in scope (eg. static string or literal)
+unsigned int MatchState::GlobalReplace (const char * pattern, char * replacement, const unsigned int max_count)
+{
+  unsigned int count = 0;
+  unsigned int replacement_length = strlen (replacement);
+  
+  // keep matching until we run out of matches
+  for (unsigned int index = 0;
+       Match (pattern, index) > 0 &&           // stop when no match
+       index < src_len &&                      // otherwise empty matches loop
+       (max_count == 0 || count < max_count);  // stop when count reached
+       count++)
+    {
+    if (MatchLength == 0)
+      index = MatchStart + 1; // go forwards at least one byte or we will loop forever
+    else 
+      {
+      // increment index ready for next time, 
+      index = MatchStart + MatchLength;
+      
+      // see how much memory we need to move
+      int lengthDiff = MatchLength - replacement_length;
+      
+      // copy the rest of the buffer backwards/forwards to allow for the length difference
+      memmove (&src [index - lengthDiff], &src [index], src_len - index);
+      
+      // copy in the replacement
+      memmove (&src [MatchStart], replacement, replacement_length);
+      
+      // adjust the index for the next search
+      index -= lengthDiff;  
+      // and the length of the source
+      src_len -= lengthDiff;
+      } // end if matching at least one byte
+    
+    } // end of for each match
+  
+  // put a terminating null in
+  src [src_len] = 0;
+  return count;
+} // end of MatchState::GlobalReplace 
 

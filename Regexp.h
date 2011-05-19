@@ -14,6 +14,7 @@
  
   Version 1.0  - 30th April 2011 : initial release.
   Version 1.1  - 1st May 2011    : added some helper functions, made more modular.
+  Version 1.2  - 19th May 2011   : added more helper functions for replacing etc.
 
 
  */
@@ -56,6 +57,16 @@
 #define CAP_UNFINISHED	(-1)
 #define CAP_POSITION	(-2)
 
+class MatchState;  // forward definition for the callback routines
+
+typedef void (*GlobalMatchCallback)   (const char * match,          // matching string (not null-terminated)
+                                       const unsigned int length,   // length of matching string
+                                       const MatchState & ms);      // MatchState in use (to get captures)
+typedef void (*GlobalReplaceCallback) (const char * match,          // matching string (not null-terminated)
+                                       const unsigned int length,   // length of matching string
+                                       char * & replacement,
+                                       unsigned int & replacement_length,
+                                       const MatchState & ms);      // MatchState in use (to get captures)
 typedef class MatchState {
 private:
   
@@ -64,13 +75,17 @@ private:
 public:
   
   MatchState () : src (0), result (REGEXP_NOMATCH) {};  // constructor
+  MatchState (char * s) : result (REGEXP_NOMATCH) 
+    { Target (s); };  // constructor from null-terminated string
+  MatchState (char * s, const unsigned int len) : result (REGEXP_NOMATCH) 
+    { Target (s, len); };  // constructor from string and length
   
   // supply these two:
-  const char *src;  /* source string */
+  char *src;  /* source string */
   unsigned int src_len;    /* length of source string */
 
   // used internally  
-  const char *src_end;  /* end of source string */
+  char *src_end;  /* end of source string */
  
   // returned fields:
   
@@ -86,17 +101,29 @@ public:
   } capture[MAXCAPTURES];
   
   // add target string, null-terminated
-  void Target (const char * s);
+  void Target (char * s);
   // add target string, with specified length
-  void Target (const char * s, const unsigned int len);
+  void Target (char * s, const unsigned int len);
   // do a match on a supplied pattern and zero-relative starting point
   char Match (const char * pattern, unsigned int index = 0);
   // return the matching string
-  char * GetMatch (char * s);
+  char * GetMatch (char * s) const;
   // return capture string n
-  char * GetCapture (char * s, const int n);
+  char * GetCapture (char * s, const int n) const;
   // get result of previous match
-  char GetResult () { return result; }
+  char GetResult () const { return result; }
+
+  // count number of matches on a supplied pattern
+  unsigned int MatchCount (const char * pattern);
+  // iterate with a supplied pattern, call function f for each match
+  // returns count of matches
+  unsigned int GlobalMatch (const char * pattern, GlobalMatchCallback f);
+  // iterate with a supplied pattern, call function f for each match, maximum of max_count matches if max_count > 0
+  // returns count of replacements
+  unsigned int GlobalReplace (const char * pattern, GlobalReplaceCallback f, const unsigned int max_count = 0);
+  // iterate with a supplied pattern, replaces with replacement string, maximum of max_count matches if max_count > 0
+  // returns count of replacements
+  unsigned int GlobalReplace (const char * pattern, char * replacement, const unsigned int max_count = 0);
   
 } MatchState;
 
