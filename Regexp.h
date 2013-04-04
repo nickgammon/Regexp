@@ -74,7 +74,7 @@ private:
   
 public:
   
-  MatchState () : src (0), result (REGEXP_NOMATCH) {};  // constructor
+  MatchState () : result (REGEXP_NOMATCH), src (0) {};  // constructor
   MatchState (char * s) : result (REGEXP_NOMATCH) 
     { Target (s); };  // constructor from null-terminated string
   MatchState (char * s, const unsigned int len) : result (REGEXP_NOMATCH) 
