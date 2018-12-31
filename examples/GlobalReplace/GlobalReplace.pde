@@ -3,7 +3,7 @@
 // called for every match
 void replace_callback (const char * match,         // what we found
                        const unsigned int length,  // how long it was
-                       char * & replacement,       // put replacement here
+                       const char * & replacement,       // put replacement here
                        unsigned int & replacement_length,  // put replacement length here
                        const MatchState & ms)      // for looking up captures
 {
@@ -11,7 +11,7 @@ void replace_callback (const char * match,         // what we found
   // show matching text
   Serial.print("Match = ");
   Serial.write((byte *) match, length);
-  Serial.println (); 
+  Serial.println ();
 
   replacement = "Nick";
   replacement_length = 4;
@@ -56,6 +56,6 @@ void setup ()
   Serial.print (count);            // 13 in this case
   Serial.println (" matches.");
 
-}  // end of setup  
+}  // end of setup
 
 void loop () {}

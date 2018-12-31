@@ -1,17 +1,17 @@
 /*
- 
+
  Regular-expression matching library for Arduino.
- 
+
  Written by Nick Gammon.
  Date: 30 April 2011
- 
- Heavily based on the Lua regular expression matching library written by Roberto Ierusalimschy. 
- 
+
+ Heavily based on the Lua regular expression matching library written by Roberto Ierusalimschy.
+
  Adapted to run on the Arduino by Nick Gammon.
- 
- 
+
+
  VERSION
- 
+
   Version 1.0  - 30th April 2011 : initial release.
   Version 1.1  - 1st May 2011    : added some helper functions, made more modular.
   Version 1.2  - 19th May 2011   : added more helper functions for replacing etc.
@@ -22,11 +22,11 @@
 #pragma once
 
 
-// Maximum of captures we can return. 
+// Maximum of captures we can return.
 // Increase if you need more, decrease to save memory.
 #define MAXCAPTURES 32
 
-// the "magic escape" character 
+// the "magic escape" character
 #define REGEXP_ESC		'%'
 
 // special characters that have to be escaped
@@ -36,10 +36,10 @@
 // Result codes from calling regexp:
 
 // we got a match
-#define REGEXP_MATCHED 1    
+#define REGEXP_MATCHED 1
 
 // no match, or not attempted to match yet
-#define REGEXP_NOMATCH 0    
+#define REGEXP_NOMATCH 0
 
 // errors when matching
 #define ERR_INVALID_CAPTURE_INDEX -1
@@ -66,42 +66,42 @@ typedef void (*GlobalMatchCallback)   (const char * match,          // matching 
                                        const MatchState & ms);      // MatchState in use (to get captures)
 typedef void (*GlobalReplaceCallback) (const char * match,          // matching string (not null-terminated)
                                        const unsigned int length,   // length of matching string
-                                       char * & replacement,
+                                       const char * & replacement,
                                        unsigned int & replacement_length,
                                        const MatchState & ms);      // MatchState in use (to get captures)
 typedef class MatchState {
 private:
-  
+
   char result;  // result of last Match call
-  
+
 public:
-  
+
   MatchState () : result (REGEXP_NOMATCH), src (0) {};  // constructor
-  MatchState (char * s) : result (REGEXP_NOMATCH) 
+  MatchState (char * s) : result (REGEXP_NOMATCH)
     { Target (s); };  // constructor from null-terminated string
-  MatchState (char * s, const unsigned int len) : result (REGEXP_NOMATCH) 
+  MatchState (char * s, const unsigned int len) : result (REGEXP_NOMATCH)
     { Target (s, len); };  // constructor from string and length
-  
+
   // supply these two:
   char *src;  /* source string */
   unsigned int src_len;    /* length of source string */
 
-  // used internally  
+  // used internally
   char *src_end;  /* end of source string */
- 
+
   // returned fields:
-  
+
   unsigned int MatchStart;    // zero-relative offset of start of match
   unsigned int MatchLength;   // length of match
-  
+
   int level;  /* total number of captures in array below (finished or unfinished) */
-  
+
   // capture addresses and lengths
   struct {
     const char *init;
     int len;              // might be CAP_UNFINISHED or CAP_POSITION
   } capture[MAXCAPTURES];
-  
+
   // add target string, null-terminated
   void Target (char * s);
   // add target string, with specified length
@@ -125,7 +125,7 @@ public:
   unsigned int GlobalReplace (const char * pattern, GlobalReplaceCallback f, const unsigned int max_count = 0);
   // iterate with a supplied pattern, replaces with replacement string, maximum of max_count matches if max_count > 0
   // returns count of replacements
-  unsigned int GlobalReplace (const char * pattern, char * replacement, const unsigned int max_count = 0);
-  
+  unsigned int GlobalReplace (const char * pattern, const char * replacement, const unsigned int max_count = 0);
+
 } MatchState;
 

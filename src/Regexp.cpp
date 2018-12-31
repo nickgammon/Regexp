@@ -5,90 +5,90 @@ Regular-expression matching library for Arduino.
 Written by Nick Gammon.
 Date: 30 April 2011
 
-Heavily based on the Lua regular expression matching library written by Roberto Ierusalimschy. 
- 
+Heavily based on the Lua regular expression matching library written by Roberto Ierusalimschy.
+
 Adapted to run on the Arduino by Nick Gammon.
 
 VERSION
- 
+
  Version 1.0  - 30th April 2011 : initial release.
  Version 1.1  - 1st May 2011    : added some helper functions, made more modular.
  Version 1.2  - 19th May 2011   : added more helper functions for replacing etc.
- 
- 
+
+
 LICENSE
 
 
 Copyright © 1994–2010 Lua.org, PUC-Rio.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), 
- to deal in the Software without restriction, including without limitation the rights to use, 
- copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
+ to deal in the Software without restriction, including without limitation the rights to use,
+ copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
  and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
- INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
- IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
- DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE 
- OR OTHER DEALINGS IN THE SOFTWARE. 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+ OR OTHER DEALINGS IN THE SOFTWARE.
 
- 
+
 USAGE
- 
- 
+
+
  Find the first match of the regular expression "pattern" in the supplied string, starting at position "index".
- 
+
  If found, returns REGEXP_MATCHED (1).
- 
+
  Also match_start and match_len in the MatchState structure are set to the start offset and length of the match.
- 
+
  The capture in the MatchState structure has the locations and lengths of each capture.
- 
+
  If not found, returns REGEXP_NOMATCH (0).
- 
+
  On a parsing error (eg. trailing % symbol) returns a negative number.
- 
- 
+
+
 EXAMPLE OF CALLING ON THE ARDUINO
- 
+
 // ------------------------------------- //
 
 #include <Regexp.h>
 
 void setup ()
 {
-  
+
   Serial.begin (115200);
   Serial.println ();
-  
+
   MatchState ms;
   char buf [100];  // large enough to hold expected string, or malloc it
-  
+
   // string we are searching
   ms.Target ("Testing: answer=42");
-  
+
   // search it
   char result = ms.Match ("(%a+)=(%d+)", 0);
-  
+
   // check results
-  
+
   switch (result)
   {
     case REGEXP_MATCHED:
-      
+
       Serial.println ("-----");
       Serial.print ("Matched on: ");
       Serial.println (ms.GetMatch (buf));
-      
+
       // matching offsets in ms.capture
-      
+
       Serial.print ("Captures: ");
       Serial.println (ms.level);
-      
+
       for (int j = 0; j < ms.level; j++)
       {
         Serial.print ("Capture number: ");
@@ -96,157 +96,157 @@ void setup ()
         Serial.print ("Text: '");
         Serial.print (ms.GetCapture (buf, j));
         Serial.println ("'");
-        
+
       }
-      break;  
-      
+      break;
+
     case REGEXP_NOMATCH:
       Serial.println ("No match.");
       break;
-      
+
     default:
       Serial.print ("Regexp error: ");
       Serial.println (result, DEC);
       break;
-      
+
   }  // end of switch
-  
+
 }  // end of setup
 
 void loop () {}  // end of loop
 
 // -------------------------------------  //
 
- 
+
 PATTERNS
- 
+
  Patterns
- 
+
  The standard patterns (character classes) you can search for are:
- 
- 
- . --- (a dot) represents all characters. 
- %a --- all letters. 
- %c --- all control characters. 
- %d --- all digits. 
- %l --- all lowercase letters. 
- %p --- all punctuation characters. 
- %s --- all space characters. 
- %u --- all uppercase letters. 
- %w --- all alphanumeric characters. 
- %x --- all hexadecimal digits. 
- %z --- the character with hex representation 0x00 (null). 
+
+
+ . --- (a dot) represents all characters.
+ %a --- all letters.
+ %c --- all control characters.
+ %d --- all digits.
+ %l --- all lowercase letters.
+ %p --- all punctuation characters.
+ %s --- all space characters.
+ %u --- all uppercase letters.
+ %w --- all alphanumeric characters.
+ %x --- all hexadecimal digits.
+ %z --- the character with hex representation 0x00 (null).
  %% --- a single '%' character.
- 
+
  %1 --- captured pattern 1.
  %2 --- captured pattern 2 (and so on).
  %f[s]  transition from not in set 's' to in set 's'.
- %b()   balanced pair ( ... ) 
- 
- 
- Important! - the uppercase versions of the above represent the complement of the class. 
+ %b()   balanced pair ( ... )
+
+
+ Important! - the uppercase versions of the above represent the complement of the class.
  eg. %U represents everything except uppercase letters, %D represents everything except digits.
-  
+
  There are some "magic characters" (such as %) that have special meanings. These are:
- 
- 
- ^ $ ( ) % . [ ] * + - ? 
- 
- 
+
+
+ ^ $ ( ) % . [ ] * + - ?
+
+
  If you want to use those in a pattern (as themselves) you must precede them by a % symbol.
- 
+
  eg. %% would match a single %
- 
+
  You can build your own pattern classes (sets) by using square brackets, eg.
- 
- 
+
+
  [abc] ---> matches a, b or c
  [a-z] ---> matches lowercase letters (same as %l)
  [^abc] ---> matches anything except a, b or c
  [%a%d] ---> matches all letters and digits
- 
+
  [%a%d_] ---> matches all letters, digits and underscore
  [%[%]] ---> matches square brackets (had to escape them with %)
- 
- 
- You can use pattern classes in the form %x in the set. 
+
+
+ You can use pattern classes in the form %x in the set.
  If you use other characters (like periods and brackets, etc.) they are simply themselves.
- 
- You can specify a range of character inside a set by using simple characters (not pattern classes like %a) separated by a hyphen. 
+
+ You can specify a range of character inside a set by using simple characters (not pattern classes like %a) separated by a hyphen.
  For example, [A-Z] or [0-9]. These can be combined with other things. For example [A-Z0-9] or [A-Z,.].
- 
+
  A end-points of a range must be given in ascending order. That is, [A-Z] would match upper-case letters, but [Z-A] would not match anything.
- 
- You can negate a set by starting it with a "^" symbol, thus [^0-9] is everything except the digits 0 to 9. 
- The negation applies to the whole set, so [^%a%d] would match anything except letters or digits. 
+
+ You can negate a set by starting it with a "^" symbol, thus [^0-9] is everything except the digits 0 to 9.
+ The negation applies to the whole set, so [^%a%d] would match anything except letters or digits.
  In anywhere except the first position of a set, the "^" symbol is simply itself.
- 
+
  Inside a set (that is a sequence delimited by square brackets) the only "magic" characters are:
- 
+
  ] ---> to end the set, unless preceded by %
  % ---> to introduce a character class (like %a), or magic character (like "]")
  ^ ---> in the first position only, to negate the set (eg. [^A-Z)
  - ---> between two characters, to specify a range (eg. [A-F])
- 
- 
+
+
  Thus, inside a set, characters like "." and "?" are just themselves.
- 
+
  The repetition characters, which can follow a character, class or set, are:
- 
- 
+
+
  +  ---> 1 or more repetitions (greedy)
  *  ---> 0 or more repetitions (greedy)
- 
+
  -  ---> 0 or more repetitions (non greedy)
  ?  ---> 0 or 1 repetition only
- 
- 
+
+
  A "greedy" match will match on as many characters as possible, a non-greedy one will match on as few as possible.
- 
+
  The standard "anchor" characters apply:
- 
- 
+
+
  ^  ---> anchor to start of subject string
  $  ---> anchor to end of subject string
- 
- 
+
+
  You can also use round brackets to specify "captures":
- 
- 
+
+
  You see (.*) here
- 
- 
+
+
  Here, whatever matches (.*) becomes the first pattern.
- 
+
  You can also refer to matched substrings (captures) later on in an expression:
- 
+
  eg. This would match:
- 
+
  string = "You see dogs and dogs"
  regexp = "You see (.*) and %1"
- 
-  
+
+
  This example shows how you can look for a repetition of a word matched earlier, whatever that word was ("dogs" in this case).
- 
+
  As a special case, an empty capture string returns as the captured pattern, the position of itself in the string. eg.
- 
+
  string = "You see dogs and dogs"
  regexp = "You .* ()dogs .*"
- 
+
  This would return a capture with an offset of 8, and a length of CAP_POSITION (-2)
- 
+
  Finally you can look for nested "balanced" things (such as parentheses) by using %b, like this:
- 
- 
+
+
  string = "I see a (big fish (swimming) in the pond) here"
  regexp = "%b()"
 
- 
- After %b you put 2 characters, which indicate the start and end of the balanced pair. 
- If it finds a nested version it keeps processing until we are back at the top level. 
+
+ After %b you put 2 characters, which indicate the start and end of the balanced pair.
+ If it finds a nested version it keeps processing until we are back at the top level.
  In this case the matching string was "(big fish (swimming) in the pond)".
 
- 
+
 */
 
 
@@ -527,47 +527,47 @@ char MatchState::Match (const char * pattern, unsigned int index)
 {
   // set up for throwing errors
   char rtn = setjmp (regexp_error_return);
-  
+
   // error return
   if (rtn)
     return ((result = rtn));
 
   if (!src)
     error (ERR_NO_TARGET_STRING);
-  
-  if (index > src_len) 
+
+  if (index > src_len)
     index = src_len;
 
   int anchor = (*pattern == '^') ? (pattern++, 1) : 0;
   const char *s1 =src + index;
   src_end = src + src_len;
-  
+
   // iterate through target string, character by character unless anchored
   do {
     const char *res;
     level = 0;
-    if ((res=match(this, s1, pattern)) != NULL) 
+    if ((res=match(this, s1, pattern)) != NULL)
     {
       MatchStart = s1 - src;
       MatchLength = res - s1;
       return (result = REGEXP_MATCHED);
     }  // end of match at this position
   } while (s1++ < src_end && !anchor);
-  
+
   return (result = REGEXP_NOMATCH); // no match
-  
+
 } // end of regexp
 
 // set up the target string
-void MatchState::Target (char * s) 
+void MatchState::Target (char * s)
   {
   Target (s, strlen (s));
   }  // end of MatchState::Target
 
-void MatchState::Target (char * s, const unsigned int len) 
-  { 
-  src = s; 
-  src_len = len; 
+void MatchState::Target (char * s, const unsigned int len)
+  {
+  src = s;
+  src_len = len;
   result = REGEXP_NOMATCH;
   }  // end of MatchState::Target
 
@@ -576,8 +576,8 @@ void MatchState::Target (char * s, const unsigned int len)
 char * MatchState::GetMatch (char * s) const
 {
   if (result != REGEXP_MATCHED)
-    s [0] = 0;  
-  else 
+    s [0] = 0;
+  else
     {
     memcpy (s, &src [MatchStart], MatchLength);
     s [MatchLength] = 0;  // null-terminated string
@@ -590,8 +590,8 @@ char * MatchState::GetMatch (char * s) const
 char * MatchState::GetCapture (char * s, const int n) const
 {
   if (result != REGEXP_MATCHED || n >= level || capture [n].len <= 0)
-    s [0] = 0;  
-  else 
+    s [0] = 0;
+  else
     {
     memcpy (s, capture [n].init, capture [n].len);
     s [capture [n].len] = 0;  // null-terminated string
@@ -603,17 +603,17 @@ char * MatchState::GetCapture (char * s, const int n) const
 unsigned int MatchState::MatchCount (const char * pattern)
 {
   unsigned int count = 0;
-  
+
   // keep matching until we run out of matches
   for (unsigned int index = 0;
        Match (pattern, index) > 0 &&
        index < src_len;                       // otherwise empty matches loop
-       count++)    
+       count++)
     // increment index ready for next time, go forwards at least one byte
     index = MatchStart + (MatchLength == 0 ? 1 : MatchLength);
-  
+
   return count;
-  
+
 } // end of MatchState::MatchCount
 
 // match repeatedly on a string, call function f for each match
@@ -631,8 +631,8 @@ unsigned int MatchState::GlobalMatch (const char * pattern, GlobalMatchCallback 
     index = MatchStart + (MatchLength == 0 ? 1 : MatchLength);
     } // end of for each match
   return count;
-  
-} // end of MatchState::GlobalMatch 
+
+} // end of MatchState::GlobalMatch
 
 // match repeatedly on a string, call function f for each match
 //  f sets replacement string, incorporate replacement and continue
@@ -641,7 +641,7 @@ unsigned int MatchState::GlobalMatch (const char * pattern, GlobalMatchCallback 
 unsigned int MatchState::GlobalReplace (const char * pattern, GlobalReplaceCallback f, const unsigned int max_count)
 {
   unsigned int count = 0;
-  
+
   // keep matching until we run out of matches
   for (unsigned int index = 0;
        Match (pattern, index) > 0 &&            // stop when no match
@@ -650,50 +650,50 @@ unsigned int MatchState::GlobalReplace (const char * pattern, GlobalReplaceCallb
        count++)
     {
     // default is to replace with self
-    char * replacement = &src [MatchStart];
+    const char * replacement = &src [MatchStart];
     unsigned int replacement_length = MatchLength;
-    
+
     // increment index ready for next time, go forwards at least one byte
     if (MatchLength == 0)
       index = MatchStart + 1; // go forwards at least one byte or we will loop forever
-    else 
+    else
       {
-      // increment index ready for next time, 
+      // increment index ready for next time,
       index = MatchStart + MatchLength;
 
       // call function to find replacement text
       f (&src [MatchStart], MatchLength, replacement, replacement_length, *this);
-      
+
       // see how much memory we need to move
       int lengthDiff = MatchLength - replacement_length;
-      
+
       // copy the rest of the buffer backwards/forwards to allow for the length difference
       memmove (&src [index - lengthDiff], &src [index], src_len - index);
-      
+
       // copy in the replacement
       memmove (&src [MatchStart], replacement, replacement_length);
-      
+
       // adjust the index for the next search
-      index -= lengthDiff;  
+      index -= lengthDiff;
       // and the length of the source
       src_len -= lengthDiff;
       } // end if matching at least one byte
     } // end of for each match
-  
+
   // put a terminating null in
   src [src_len] = 0;
   return count;
-} // end of MatchState::GlobalReplace 
+} // end of MatchState::GlobalReplace
 
 
 // match repeatedly on a string, replaces with replacement string for each match
 // maximum of max_count replacements if max_count > 0
 // replacement string in GlobalReplaceCallback must stay in scope (eg. static string or literal)
-unsigned int MatchState::GlobalReplace (const char * pattern, char * replacement, const unsigned int max_count)
+unsigned int MatchState::GlobalReplace (const char * pattern, const char * replacement, const unsigned int max_count)
 {
   unsigned int count = 0;
   unsigned int replacement_length = strlen (replacement);
-  
+
   // keep matching until we run out of matches
   for (unsigned int index = 0;
        Match (pattern, index) > 0 &&           // stop when no match
@@ -703,30 +703,30 @@ unsigned int MatchState::GlobalReplace (const char * pattern, char * replacement
     {
     if (MatchLength == 0)
       index = MatchStart + 1; // go forwards at least one byte or we will loop forever
-    else 
+    else
       {
-      // increment index ready for next time, 
+      // increment index ready for next time,
       index = MatchStart + MatchLength;
-      
+
       // see how much memory we need to move
       int lengthDiff = MatchLength - replacement_length;
-      
+
       // copy the rest of the buffer backwards/forwards to allow for the length difference
       memmove (&src [index - lengthDiff], &src [index], src_len - index);
-      
+
       // copy in the replacement
       memmove (&src [MatchStart], replacement, replacement_length);
-      
+
       // adjust the index for the next search
-      index -= lengthDiff;  
+      index -= lengthDiff;
       // and the length of the source
       src_len -= lengthDiff;
       } // end if matching at least one byte
-    
+
     } // end of for each match
-  
+
   // put a terminating null in
   src [src_len] = 0;
   return count;
-} // end of MatchState::GlobalReplace 
+} // end of MatchState::GlobalReplace
 
